@@ -13,19 +13,22 @@ WITH counts AS (
     mc.categoryid,
     m.movieid,
     m.title,
-    COUNT(r.rentalid) AS rentals_90d             -- group
-  FROM movie m
-  JOIN moviecategory mc ON mc.movieid = m.movieid
-  LEFT JOIN rental r
+    COUNT(r.rentalid) AS rentals_90d
+  FROM vod.movie m
+  JOIN vod.moviecategory mc ON mc.movieid = m.movieid
+  LEFT JOIN vod.rental r
     ON r.movieid = m.movieid
    AND r.rentaldate >= NOW() - INTERVAL '90 days'
   GROUP BY mc.categoryid, m.movieid, m.title
 )
 SELECT
   c.categoryname,
-  title,
-  rentals_90d,
-  RANK() OVER (PARTITION BY categoryid ORDER BY rentals_90d DESC, title) AS rank_in_category  -- OLAP
-FROM counts
-JOIN category c ON c.categoryid = counts.categoryid
-ORDER BY c.categoryname, rank_in_category, title;
+  cnt.title,
+  cnt.rentals_90d,
+  RANK() OVER (
+    PARTITION BY cnt.categoryid
+    ORDER BY cnt.rentals_90d DESC, cnt.title
+  ) AS rank_in_category
+FROM counts AS cnt
+JOIN vod.category c ON c.categoryid = cnt.categoryid
+ORDER BY c.categoryname, rank_in_category, cnt.title;
